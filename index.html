@@ -1,1 +1,1842 @@
-ah
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberEdu - Plataforma Educacional de Segurança Digital</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React e ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <style>
+        /* Animações personalizadas */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(34, 211, 238, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(34, 211, 238, 0.8); }
+        }
+        
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes bounce-in {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes character-walk {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-2px) scale(1.05); }
+        }
+        
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        .animate-slide-in { animation: slide-in 0.6s ease-out; }
+        .animate-bounce-in { animation: bounce-in 0.8s ease-out; }
+        .animate-character-walk { animation: character-walk 0.3s ease-in-out; }
+        
+        /* Mapa interativo */
+        .mapa-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 4/3;
+        }
+        
+        .celula-mapa {
+            position: relative;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            min-height: 60px;
+        }
+        
+        .personagem {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+        
+        .trilha-ponto {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+        }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { 
+            background: linear-gradient(45deg, #22d3ee, #8b5cf6); 
+            border-radius: 4px; 
+        }
+        
+        /* Gradientes personalizados */
+        .bg-cyber-gradient {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f172a 100%);
+        }
+        
+        .text-cyber-glow {
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+        
+        /* Efeitos de hover */
+        .hover-scale:hover { transform: scale(1.05); }
+        .hover-glow:hover { box-shadow: 0 0 20px rgba(34, 211, 238, 0.4); }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid rgba(34, 211, 238, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #22d3ee;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Controles do mapa */
+        .controles-mapa {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 20;
+        }
+        
+        .botao-controle {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        
+        .botao-controle:active {
+            transform: scale(0.95);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .mapa-grid {
+                grid-template-columns: repeat(6, 1fr);
+                grid-template-rows: repeat(5, 1fr);
+            }
+            
+            .celula-mapa {
+                min-height: 50px;
+            }
+            
+            .controles-mapa {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            .botao-controle {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .mobile-menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .mobile-menu.open {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-cyber-gradient min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // Dados simulados da aplicação
+        const dadosApp = {
+            professores: [
+                {
+                    id: 1,
+                    usuario: 'valter',
+                    senha: 'teste',
+                    nome: 'Prof. Valter Neto',
+                    email: 'valter.neto@cyberedu.com',
+                    codigoTurma: 'CYBER2024A'
+                }
+            ],
+            turmas: {
+                'CYBER2024A': {
+                    nome: 'Turma A - Segurança Digital',
+                    professor: 'Prof. Valter Neto',
+                    alunos: ['Ana Silva', 'Carlos Santos', 'Beatriz Costa'],
+                    ativa: true
+                }
+            },
+            alunos: {
+                'Ana Silva': {
+                    nivel: 3,
+                    pontos: 1250,
+                    progresso: 85,
+                    trilhas: {
+                        fundamentos: 100,
+                        senhas: 80,
+                        phishing: 60,
+                        'redes-sociais': 45
+                    },
+                    simulacoes: 12,
+                    tempoJogado: '8h 30m',
+                    ultimoAcesso: 'Hoje às 14:30',
+                    medalhas: ['Primeiro Passo', 'Guardião Digital', 'Especialista em Senhas']
+                },
+                'Carlos Santos': {
+                    nivel: 2,
+                    pontos: 800,
+                    progresso: 65,
+                    trilhas: {
+                        fundamentos: 100,
+                        senhas: 50,
+                        phishing: 30,
+                        'redes-sociais': 20
+                    },
+                    simulacoes: 8,
+                    tempoJogado: '5h 15m',
+                    ultimoAcesso: 'Ontem às 16:45',
+                    medalhas: ['Primeiro Passo', 'Guardião Digital']
+                },
+                'Beatriz Costa': {
+                    nivel: 4,
+                    pontos: 1800,
+                    progresso: 95,
+                    trilhas: {
+                        fundamentos: 100,
+                        senhas: 100,
+                        phishing: 85,
+                        'redes-sociais': 90
+                    },
+                    simulacoes: 18,
+                    tempoJogado: '12h 45m',
+                    ultimoAcesso: 'Hoje às 10:15',
+                    medalhas: ['Primeiro Passo', 'Guardião Digital', 'Especialista em Senhas', 'Caçador de Phishing', 'Mestre da Segurança']
+                }
+            },
+            trilhas: [
+                {
+                    id: 'fundamentos',
+                    nome: 'Fundamentos de Segurança',
+                    descricao: 'Aprenda os conceitos básicos de segurança digital',
+                    cor: 'from-green-500 to-emerald-600',
+                    icone: 'Shield',
+                    modulos: 5,
+                    dificuldade: 'Básico',
+                    posicao: { x: 1, y: 1 }
+                },
+                {
+                    id: 'senhas',
+                    nome: 'Senhas Seguras',
+                    descricao: 'Crie e gerencie senhas invencíveis',
+                    cor: 'from-blue-500 to-cyan-600',
+                    icone: 'Key',
+                    modulos: 4,
+                    dificuldade: 'Intermediário',
+                    posicao: { x: 3, y: 2 }
+                },
+                {
+                    id: 'phishing',
+                    nome: 'Anti-Phishing',
+                    descricao: 'Identifique e evite golpes por email',
+                    cor: 'from-red-500 to-orange-600',
+                    icone: 'Mail',
+                    modulos: 6,
+                    dificuldade: 'Avançado',
+                    posicao: { x: 6, y: 1 }
+                },
+                {
+                    id: 'redes-sociais',
+                    nome: 'Redes Sociais Seguras',
+                    descricao: 'Proteja-se nas redes sociais',
+                    cor: 'from-purple-500 to-pink-600',
+                    icone: 'Users',
+                    modulos: 4,
+                    dificuldade: 'Básico',
+                    posicao: { x: 5, y: 4 }
+                }
+            ]
+        };
+
+        // Componente de Ícone
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+            
+            return React.createElement('i', {
+                'data-lucide': name.toLowerCase().replace(/([A-Z])/g, '-$1').toLowerCase(),
+                className
+            });
+        };
+
+        // Componente Header
+        const Header = ({ usuarioLogado, onLogout, onNavigate }) => {
+            const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+
+            return (
+                <header className="fixed top-0 w-full bg-black/20 backdrop-blur-md border-b border-cyan-500/30 z-50">
+                    <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+                        {/* Logo */}
+                        <div 
+                            className="flex items-center space-x-2 cursor-pointer hover-scale transition-all"
+                            onClick={() => onNavigate('inicio')}
+                        >
+                            <Icon name="Shield" className="w-8 h-8 text-cyan-400" />
+                            <span className="text-2xl font-bold text-white text-cyber-glow">CyberEdu</span>
+                        </div>
+
+                        {/* Menu Desktop */}
+                        <nav className="hidden md:flex space-x-6">
+                            <button 
+                                onClick={() => onNavigate('inicio')}
+                                className="text-white hover:text-cyan-400 transition-colors"
+                            >
+                                Início
+                            </button>
+                            <button 
+                                onClick={() => onNavigate('mapa')}
+                                className="text-white hover:text-cyan-400 transition-colors"
+                            >
+                                Trilhas
+                            </button>
+                            <button 
+                                onClick={() => onNavigate('simulacoes')}
+                                className="text-white hover:text-cyan-400 transition-colors"
+                            >
+                                Simulações
+                            </button>
+                            {!usuarioLogado && (
+                                <button 
+                                    onClick={() => onNavigate('login')}
+                                    className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all hover-scale"
+                                >
+                                    Login
+                                </button>
+                            )}
+                        </nav>
+
+                        {/* Botão Menu Mobile */}
+                        <button 
+                            className="md:hidden text-white"
+                            onClick={() => setMenuMobileAberto(!menuMobileAberto)}
+                        >
+                            <Icon name="Menu" />
+                        </button>
+
+                        {/* Botão Logout */}
+                        {usuarioLogado && (
+                            <button 
+                                onClick={onLogout}
+                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all hover-scale"
+                            >
+                                <Icon name="LogOut" className="w-4 h-4 inline mr-2" />
+                                Sair
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Menu Mobile */}
+                    {menuMobileAberto && (
+                        <div className="md:hidden bg-black/90 backdrop-blur-md border-t border-cyan-500/30">
+                            <nav className="flex flex-col p-4 space-y-4">
+                                <button 
+                                    onClick={() => { onNavigate('inicio'); setMenuMobileAberto(false); }}
+                                    className="text-white hover:text-cyan-400 transition-colors text-left"
+                                >
+                                    Início
+                                </button>
+                                <button 
+                                    onClick={() => { onNavigate('mapa'); setMenuMobileAberto(false); }}
+                                    className="text-white hover:text-cyan-400 transition-colors text-left"
+                                >
+                                    Trilhas
+                                </button>
+                                <button 
+                                    onClick={() => { onNavigate('simulacoes'); setMenuMobileAberto(false); }}
+                                    className="text-white hover:text-cyan-400 transition-colors text-left"
+                                >
+                                    Simulações
+                                </button>
+                                {!usuarioLogado && (
+                                    <button 
+                                        onClick={() => { onNavigate('login'); setMenuMobileAberto(false); }}
+                                        className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white px-4 py-2 rounded-lg transition-all text-left"
+                                    >
+                                        Login
+                                    </button>
+                                )}
+                            </nav>
+                        </div>
+                    )}
+                </header>
+            );
+        };
+
+        // Componente Página Inicial
+        const PaginaInicial = ({ onNavigate }) => {
+            return (
+                <div className="pt-24 pb-16 px-4 animate-slide-in">
+                    {/* Hero Section */}
+                    <div className="container mx-auto text-center mb-16">
+                        <div className="relative mb-8">
+                            {/* Cenário do Jogo */}
+                            <div className="w-full max-w-4xl mx-auto h-64 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-xl border border-cyan-400/30 relative overflow-hidden animate-pulse-glow">
+                                {/* Avatar do Jogador */}
+                                <div className="absolute bottom-8 left-8 w-12 h-12 bg-cyan-400 rounded-full flex items-center justify-center animate-float">
+                                    <Icon name="Shield" className="w-6 h-6 text-blue-900" />
+                                </div>
+                                
+                                {/* Elementos do Cenário */}
+                                <div className="absolute bottom-8 right-8 w-16 h-20 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t-lg">
+                                    <div className="w-3 h-3 bg-yellow-300 rounded-full absolute top-2 left-2"></div>
+                                    <div className="w-3 h-3 bg-yellow-300 rounded-full absolute top-2 right-2"></div>
+                                </div>
+                                
+                                {/* Caminho */}
+                                <div className="absolute bottom-0 left-20 right-20 h-2 bg-cyan-400/50 rounded-full"></div>
+                                
+                                {/* Partículas */}
+                                <div className="absolute top-8 left-16 w-2 h-2 bg-cyan-300 rounded-full animate-pulse"></div>
+                                <div className="absolute top-12 right-24 w-2 h-2 bg-purple-300 rounded-full animate-pulse delay-300"></div>
+                                <div className="absolute top-20 left-32 w-2 h-2 bg-green-300 rounded-full animate-pulse delay-700"></div>
+                            </div>
+                        </div>
+
+                        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 text-cyber-glow">
+                            Explore um mundo onde aprender a se proteger é uma
+                            <span className="text-cyan-400"> aventura!</span>
+                        </h1>
+
+                        <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                            Transforme seu conhecimento em segurança digital através de uma jornada épica. 
+                            Desbrave trilhas, colete ferramentas de proteção e torne-se um guardião digital!
+                        </p>
+
+                        <button 
+                            onClick={() => onNavigate('mapa')}
+                            className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white px-8 py-4 text-xl font-bold rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg animate-pulse-glow"
+                        >
+                            <Icon name="Play" className="w-6 h-6 inline mr-2" />
+                            Entrar no Jogo
+                        </button>
+                    </div>
+
+                    {/* Recursos da Plataforma */}
+                    <div className="container mx-auto">
+                        <h2 className="text-3xl font-bold text-center text-white mb-12 text-cyber-glow">
+                            Recursos da Aventura Digital
+                        </h2>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="bg-black/40 backdrop-blur-md border border-cyan-400/30 hover:border-cyan-400/60 rounded-xl p-6 text-center transition-all duration-300 hover-scale hover-glow">
+                                <Icon name="BookOpen" className="w-12 h-12 text-cyan-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-white mb-3">Trilhas Interativas</h3>
+                                <p className="text-gray-300">
+                                    Percorra mapas temáticos e desbrave módulos de conhecimento em segurança digital
+                                </p>
+                            </div>
+
+                            <div className="bg-black/40 backdrop-blur-md border border-purple-400/30 hover:border-purple-400/60 rounded-xl p-6 text-center transition-all duration-300 hover-scale hover-glow">
+                                <Icon name="Zap" className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-white mb-3">Simulações Reais</h3>
+                                <p className="text-gray-300">
+                                    Enfrente ataques simulados e aprenda a se defender com feedback inteligente
+                                </p>
+                            </div>
+
+                            <div className="bg-black/40 backdrop-blur-md border border-green-400/30 hover:border-green-400/60 rounded-xl p-6 text-center transition-all duration-300 hover-scale hover-glow">
+                                <Icon name="Trophy" className="w-12 h-12 text-green-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold text-white mb-3">Sistema de Conquistas</h3>
+                                <p className="text-gray-300">
+                                    Colete medalhas, ferramentas de proteção e evolua seu nível de segurança
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Estatísticas */}
+                    <div className="container mx-auto mt-16">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                            <div className="animate-bounce-in">
+                                <div className="text-4xl font-bold text-cyan-400 mb-2">500+</div>
+                                <div className="text-gray-300">Aventureiros Digitais</div>
+                            </div>
+                            <div className="animate-bounce-in delay-200">
+                                <div className="text-4xl font-bold text-purple-400 mb-2">50+</div>
+                                <div className="text-gray-300">Trilhas de Conhecimento</div>
+                            </div>
+                            <div className="animate-bounce-in delay-400">
+                                <div className="text-4xl font-bold text-green-400 mb-2">1000+</div>
+                                <div className="text-gray-300">Simulações Realizadas</div>
+                            </div>
+                            <div className="animate-bounce-in delay-600">
+                                <div className="text-4xl font-bold text-yellow-400 mb-2">95%</div>
+                                <div className="text-gray-300">Taxa de Aprovação</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente Login
+        const Login = ({ onLogin, onNavigate }) => {
+            const [tipoLogin, setTipoLogin] = useState('professor');
+            const [formData, setFormData] = useState({
+                usuario: '',
+                senha: '',
+                nome: '',
+                codigoTurma: ''
+            });
+            const [loading, setLoading] = useState(false);
+            const [erro, setErro] = useState('');
+            const [mostrarSenha, setMostrarSenha] = useState(false);
+            const [codigoValido, setCodigoValido] = useState(null);
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+                
+                if (name === 'codigoTurma') {
+                    validarCodigo(value);
+                }
+            };
+
+            const validarCodigo = (codigo) => {
+                if (codigo.length === 0) {
+                    setCodigoValido(null);
+                    return;
+                }
+                
+                const turma = dadosApp.turmas[codigo.toUpperCase()];
+                setCodigoValido(turma ? true : false);
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setErro('');
+
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    if (tipoLogin === 'professor') {
+                        const professor = dadosApp.professores.find(p => 
+                            p.usuario === formData.usuario && p.senha === formData.senha
+                        );
+                        
+                        if (professor) {
+                            onLogin({ ...professor, tipo: 'professor' });
+                        } else {
+                            setErro('Usuário ou senha incorretos. Tente: valter / teste');
+                        }
+                    } else {
+                        const turma = dadosApp.turmas[formData.codigoTurma.toUpperCase()];
+                        
+                        if (formData.nome.trim() && turma) {
+                            const dadosAluno = dadosApp.alunos[formData.nome] || {
+                                nivel: 1,
+                                pontos: 0,
+                                progresso: 0,
+                                trilhas: {}
+                            };
+                            
+                            onLogin({
+                                nome: formData.nome,
+                                codigoTurma: formData.codigoTurma.toUpperCase(),
+                                tipo: 'aluno',
+                                ...dadosAluno
+                            });
+                        } else {
+                            setErro('Nome ou código da turma inválidos');
+                        }
+                    }
+                } catch (error) {
+                    setErro('Erro ao fazer login. Tente novamente.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const preencherDemo = () => {
+                if (tipoLogin === 'professor') {
+                    setFormData(prev => ({ ...prev, usuario: 'valter', senha: 'teste' }));
+                } else {
+                    setFormData(prev => ({ ...prev, nome: 'Ana Silva', codigoTurma: 'CYBER2024A' }));
+                    setCodigoValido(true);
+                }
+            };
+
+            return (
+                <div className="pt-24 pb-16 px-4 animate-slide-in">
+                    <div className="container mx-auto max-w-md">
+                        <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 hover-glow">
+                            <div className="text-center mb-8">
+                                <Icon name="Shield" className="w-16 h-16 text-cyan-400 mx-auto mb-4 animate-pulse-glow" />
+                                <h2 className="text-3xl font-bold text-white mb-2 text-cyber-glow">Acesso CyberEdu</h2>
+                                <p className="text-gray-300">Entre na sua conta para continuar a aventura</p>
+                            </div>
+
+                            {/* Seletor de Tipo */}
+                            <div className="flex mb-6 bg-black/20 rounded-lg p-1">
+                                <button
+                                    onClick={() => setTipoLogin('professor')}
+                                    className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                                        tipoLogin === 'professor' 
+                                            ? 'bg-cyan-500 text-white' 
+                                            : 'text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Icon name="GraduationCap" className="w-4 h-4 inline mr-2" />
+                                    Professor
+                                </button>
+                                <button
+                                    onClick={() => setTipoLogin('aluno')}
+                                    className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                                        tipoLogin === 'aluno' 
+                                            ? 'bg-cyan-500 text-white' 
+                                            : 'text-gray-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Icon name="User" className="w-4 h-4 inline mr-2" />
+                                    Aluno
+                                </button>
+                            </div>
+
+                            {/* Formulário */}
+                            <form onSubmit={handleSubmit}>
+                                {tipoLogin === 'professor' ? (
+                                    <>
+                                        <div className="mb-4">
+                                            <label className="block text-white text-sm font-medium mb-2">
+                                                Nome de Usuário
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="usuario"
+                                                value={formData.usuario}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-3 bg-black/20 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-400 focus:outline-none transition-all"
+                                                placeholder="Digite seu usuário"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="mb-6">
+                                            <label className="block text-white text-sm font-medium mb-2">
+                                                Senha
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type={mostrarSenha ? 'text' : 'password'}
+                                                    name="senha"
+                                                    value={formData.senha}
+                                                    onChange={handleInputChange}
+                                                    className="w-full px-4 py-3 bg-black/20 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-400 focus:outline-none transition-all pr-12"
+                                                    placeholder="Digite sua senha"
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMostrarSenha(!mostrarSenha)}
+                                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                                >
+                                                    <Icon name={mostrarSenha ? 'EyeOff' : 'Eye'} className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="mb-4">
+                                            <label className="block text-white text-sm font-medium mb-2">
+                                                Nome Completo
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="nome"
+                                                value={formData.nome}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-3 bg-black/20 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-400 focus:outline-none transition-all"
+                                                placeholder="Digite seu nome completo"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="mb-6">
+                                            <label className="block text-white text-sm font-medium mb-2">
+                                                Código da Turma
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    name="codigoTurma"
+                                                    value={formData.codigoTurma}
+                                                    onChange={handleInputChange}
+                                                    className="w-full px-4 py-3 bg-black/20 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-cyan-400 focus:outline-none transition-all pr-12"
+                                                    placeholder="Digite o código da turma"
+                                                    required
+                                                />
+                                                {codigoValido !== null && (
+                                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                                        <Icon 
+                                                            name={codigoValido ? 'CheckCircle' : 'XCircle'} 
+                                                            className={`w-5 h-5 ${codigoValido ? 'text-green-400' : 'text-red-400'}`} 
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {codigoValido !== null && (
+                                                <div className={`mt-2 text-sm ${codigoValido ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {codigoValido 
+                                                        ? `✓ Turma encontrada: ${dadosApp.turmas[formData.codigoTurma.toUpperCase()]?.nome}`
+                                                        : '✗ Código de turma inválido'
+                                                    }
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Mensagem de Erro */}
+                                {erro && (
+                                    <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                                        {erro}
+                                    </div>
+                                )}
+
+                                {/* Botão de Login */}
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-105"
+                                >
+                                    {loading ? (
+                                        <div className="flex items-center justify-center">
+                                            <div className="spinner mr-2"></div>
+                                            Entrando...
+                                        </div>
+                                    ) : (
+                                        `Entrar como ${tipoLogin === 'professor' ? 'Professor' : 'Aluno'}`
+                                    )}
+                                </button>
+                            </form>
+
+                            {/* Dados de Demonstração */}
+                            <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                                <h4 className="text-white font-medium mb-2">Dados para Teste:</h4>
+                                <div className="text-sm text-gray-300 space-y-1">
+                                    <p><strong>Professor:</strong> valter / teste</p>
+                                    <p><strong>Aluno:</strong> Ana Silva + Código: CYBER2024A</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={preencherDemo}
+                                    className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors"
+                                >
+                                    Preencher Dados de Demo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente Mapa Interativo
+        const MapaTrilhas = ({ onNavigate, usuarioLogado }) => {
+            const [posicaoPersonagem, setPosicaoPersonagem] = useState({ x: 0, y: 0 });
+            const [trilhaSelecionada, setTrilhaSelecionada] = useState(null);
+            const [animandoMovimento, setAnimandoMovimento] = useState(false);
+
+            // Configurações do mapa
+            const LARGURA_MAPA = 8;
+            const ALTURA_MAPA = 6;
+
+            // Controle por teclado
+            useEffect(() => {
+                const handleKeyPress = (e) => {
+                    if (trilhaSelecionada) return; // Não mover se modal estiver aberto
+                    
+                    let novaX = posicaoPersonagem.x;
+                    let novaY = posicaoPersonagem.y;
+
+                    switch (e.key.toLowerCase()) {
+                        case 'w':
+                        case 'arrowup':
+                            novaY = Math.max(0, posicaoPersonagem.y - 1);
+                            break;
+                        case 's':
+                        case 'arrowdown':
+                            novaY = Math.min(ALTURA_MAPA - 1, posicaoPersonagem.y + 1);
+                            break;
+                        case 'a':
+                        case 'arrowleft':
+                            novaX = Math.max(0, posicaoPersonagem.x - 1);
+                            break;
+                        case 'd':
+                        case 'arrowright':
+                            novaX = Math.min(LARGURA_MAPA - 1, posicaoPersonagem.x + 1);
+                            break;
+                        case ' ':
+                        case 'enter':
+                            // Verificar se há trilha na posição atual
+                            const trilhaNaPosicao = dadosApp.trilhas.find(t => 
+                                t.posicao.x === posicaoPersonagem.x && t.posicao.y === posicaoPersonagem.y
+                            );
+                            if (trilhaNaPosicao) {
+                                abrirTrilha(trilhaNaPosicao);
+                            }
+                            break;
+                    }
+
+                    if (novaX !== posicaoPersonagem.x || novaY !== posicaoPersonagem.y) {
+                        moverPersonagem(novaX, novaY);
+                    }
+                };
+
+                window.addEventListener('keydown', handleKeyPress);
+                return () => window.removeEventListener('keydown', handleKeyPress);
+            }, [posicaoPersonagem, trilhaSelecionada]);
+
+            const moverPersonagem = (x, y) => {
+                setAnimandoMovimento(true);
+                setPosicaoPersonagem({ x, y });
+                setTimeout(() => setAnimandoMovimento(false), 300);
+            };
+
+            const moverComBotao = (direcao) => {
+                let novaX = posicaoPersonagem.x;
+                let novaY = posicaoPersonagem.y;
+
+                switch (direcao) {
+                    case 'cima':
+                        novaY = Math.max(0, posicaoPersonagem.y - 1);
+                        break;
+                    case 'baixo':
+                        novaY = Math.min(ALTURA_MAPA - 1, posicaoPersonagem.y + 1);
+                        break;
+                    case 'esquerda':
+                        novaX = Math.max(0, posicaoPersonagem.x - 1);
+                        break;
+                    case 'direita':
+                        novaX = Math.min(LARGURA_MAPA - 1, posicaoPersonagem.x + 1);
+                        break;
+                }
+
+                if (novaX !== posicaoPersonagem.x || novaY !== posicaoPersonagem.y) {
+                    moverPersonagem(novaX, novaY);
+                }
+            };
+
+            const abrirTrilha = (trilha) => {
+                setTrilhaSelecionada(trilha);
+            };
+
+            const iniciarTrilha = () => {
+                alert(`Iniciando trilha: ${trilhaSelecionada.nome}!`);
+                setTrilhaSelecionada(null);
+            };
+
+            const renderizarCelula = (x, y) => {
+                const index = y * LARGURA_MAPA + x;
+                const temPersonagem = posicaoPersonagem.x === x && posicaoPersonagem.y === y;
+                const trilha = dadosApp.trilhas.find(t => t.posicao.x === x && t.posicao.y === y);
+                
+                // Tipos de terreno
+                let tipoTerreno = 'normal';
+                if ((x + y) % 3 === 0) tipoTerreno = 'floresta';
+                else if ((x + y) % 5 === 0) tipoTerreno = 'montanha';
+                else if (x === 0 || x === LARGURA_MAPA - 1 || y === 0 || y === ALTURA_MAPA - 1) tipoTerreno = 'borda';
+
+                const classeTerreno = {
+                    normal: 'bg-gradient-to-br from-green-800/30 to-green-700/30',
+                    floresta: 'bg-gradient-to-br from-green-900/50 to-green-800/50',
+                    montanha: 'bg-gradient-to-br from-gray-700/50 to-gray-600/50',
+                    borda: 'bg-gradient-to-br from-blue-900/30 to-blue-800/30'
+                };
+
+                return (
+                    <div
+                        key={index}
+                        className={`celula-mapa ${classeTerreno[tipoTerreno]} border border-cyan-500/20 cursor-pointer hover:border-cyan-400/50 transition-all`}
+                        onClick={() => trilha && abrirTrilha(trilha)}
+                    >
+                        {/* Trilha */}
+                        {trilha && (
+                            <div className="trilha-ponto">
+                                <div className={`w-8 h-8 md:w-10 md:h-10 bg-gradient-to-r ${trilha.cor} rounded-full flex items-center justify-center shadow-lg animate-pulse-glow cursor-pointer hover:scale-110 transition-all`}>
+                                    <Icon name={trilha.icone} className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Personagem */}
+                        {temPersonagem && (
+                            <div className={`personagem ${animandoMovimento ? 'animate-character-walk' : ''}`}>
+                                <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                                    <Icon name="User" className="w-3 h-3 md:w-4 md:h-4 text-white" />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Decorações do terreno */}
+                        {tipoTerreno === 'floresta' && (
+                            <div className="absolute top-1 left-1 w-2 h-2 bg-green-400 rounded-full opacity-60"></div>
+                        )}
+                        {tipoTerreno === 'montanha' && (
+                            <div className="absolute top-1 right-1 w-0 h-0 border-l-2 border-r-2 border-b-3 border-transparent border-b-gray-400 opacity-60"></div>
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="pt-24 pb-16 px-4 animate-slide-in">
+                    <div className="container mx-auto">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold text-white mb-4 text-cyber-glow">
+                                Mapa Interativo de Segurança Digital
+                            </h2>
+                            <p className="text-gray-300 mb-4">
+                                Use WASD ou as setas para mover seu personagem. Pressione ESPAÇO para interagir com trilhas.
+                            </p>
+                            {usuarioLogado && (
+                                <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-4 inline-block">
+                                    <p className="text-white">
+                                        <Icon name="User" className="w-4 h-4 inline mr-2" />
+                                        Jogador: <span className="text-cyan-400 font-bold">{usuarioLogado.nome}</span>
+                                        {usuarioLogado.nivel && (
+                                            <span className="ml-4 text-purple-400">Nível {usuarioLogado.nivel}</span>
+                                        )}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Mapa Interativo */}
+                        <div className="flex justify-center mb-8">
+                            <div className="mapa-grid bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-xl p-4">
+                                {Array.from({ length: ALTURA_MAPA }, (_, y) =>
+                                    Array.from({ length: LARGURA_MAPA }, (_, x) => renderizarCelula(x, y))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Controles Mobile */}
+                        <div className="controles-mapa md:hidden">
+                            <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-2">
+                                <div className="grid grid-cols-3 gap-2 w-36">
+                                    <div></div>
+                                    <button
+                                        onClick={() => moverComBotao('cima')}
+                                        className="botao-controle bg-cyan-500 hover:bg-cyan-600 text-white"
+                                    >
+                                        ↑
+                                    </button>
+                                    <div></div>
+                                    <button
+                                        onClick={() => moverComBotao('esquerda')}
+                                        className="botao-controle bg-cyan-500 hover:bg-cyan-600 text-white"
+                                    >
+                                        ←
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const trilhaNaPosicao = dadosApp.trilhas.find(t => 
+                                                t.posicao.x === posicaoPersonagem.x && t.posicao.y === posicaoPersonagem.y
+                                            );
+                                            if (trilhaNaPosicao) abrirTrilha(trilhaNaPosicao);
+                                        }}
+                                        className="botao-controle bg-yellow-500 hover:bg-yellow-600 text-white text-xs"
+                                    >
+                                        ⚡
+                                    </button>
+                                    <button
+                                        onClick={() => moverComBotao('direita')}
+                                        className="botao-controle bg-cyan-500 hover:bg-cyan-600 text-white"
+                                    >
+                                        →
+                                    </button>
+                                    <div></div>
+                                    <button
+                                        onClick={() => moverComBotao('baixo')}
+                                        className="botao-controle bg-cyan-500 hover:bg-cyan-600 text-white"
+                                    >
+                                        ↓
+                                    </button>
+                                    <div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Legenda */}
+                        <div className="mt-8 bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                            <h3 className="text-xl font-bold text-white mb-4">Legenda do Mapa</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full border-2 border-white"></div>
+                                    <span className="text-white text-sm">Seu Personagem</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full"></div>
+                                    <span className="text-white text-sm">Trilha Disponível</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-gradient-to-br from-green-800/50 to-green-700/50 border border-cyan-500/20"></div>
+                                    <span className="text-white text-sm">Terreno Normal</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="w-6 h-6 bg-gradient-to-br from-green-900/50 to-green-800/50 border border-cyan-500/20"></div>
+                                    <span className="text-white text-sm">Floresta</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Instruções */}
+                        <div className="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                            <h4 className="text-blue-400 font-medium mb-2">💡 Como Jogar:</h4>
+                            <div className="text-sm text-gray-300 space-y-1">
+                                <p>• <strong>Movimento:</strong> Use as teclas WASD ou setas do teclado</p>
+                                <p>• <strong>Interação:</strong> Pressione ESPAÇO ou ENTER quando estiver sobre uma trilha</p>
+                                <p>• <strong>Mobile:</strong> Use os botões de controle no canto inferior direito</p>
+                                <p>• <strong>Objetivo:</strong> Explore o mapa e complete as trilhas de segurança digital!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Modal de Trilha */}
+                    {trilhaSelecionada && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div className={`bg-gradient-to-br ${trilhaSelecionada.cor} rounded-xl p-8 max-w-md w-full text-white animate-bounce-in`}>
+                                <div className="flex items-center justify-between mb-6">
+                                    <Icon name={trilhaSelecionada.icone} className="w-12 h-12" />
+                                    <button
+                                        onClick={() => setTrilhaSelecionada(null)}
+                                        className="text-white/70 hover:text-white text-2xl"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+
+                                <h3 className="text-2xl font-bold mb-3">{trilhaSelecionada.nome}</h3>
+                                <p className="mb-6 text-white/90">{trilhaSelecionada.descricao}</p>
+
+                                <div className="mb-6">
+                                    <h4 className="font-semibold mb-3">Informações:</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Módulos:</span>
+                                            <span>{trilhaSelecionada.modulos}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Dificuldade:</span>
+                                            <span>{trilhaSelecionada.dificuldade}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Duração estimada:</span>
+                                            <span>{trilhaSelecionada.modulos * 15} min</span>
+                                        </div>
+                                        {usuarioLogado && usuarioLogado.trilhas && usuarioLogado.trilhas[trilhaSelecionada.id] && (
+                                            <div className="flex justify-between">
+                                                <span>Seu progresso:</span>
+                                                <span className="text-yellow-300 font-bold">
+                                                    {usuarioLogado.trilhas[trilhaSelecionada.id]}%
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={iniciarTrilha}
+                                    className="w-full bg-white/20 hover:bg-white/30 text-white py-3 px-6 rounded-lg font-semibold transition-all backdrop-blur-sm"
+                                >
+                                    <Icon name="Play" className="w-5 h-5 inline mr-2" />
+                                    Iniciar Aventura
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Componente Simulações
+        const Simulacoes = () => {
+            const simulacoes = [
+                {
+                    id: 'phishing',
+                    nome: 'Detecção de Phishing',
+                    descricao: 'Identifique emails maliciosos e aprenda a se proteger contra ataques de phishing.',
+                    icone: 'Mail',
+                    cor: 'from-red-500 to-orange-600',
+                    dificuldade: 'Intermediário'
+                },
+                {
+                    id: 'senhas',
+                    nome: 'Criação de Senhas',
+                    descricao: 'Aprenda a criar senhas fortes e seguras para proteger suas contas.',
+                    icone: 'Key',
+                    cor: 'from-blue-500 to-cyan-600',
+                    dificuldade: 'Básico'
+                },
+                {
+                    id: 'wifi',
+                    nome: 'Segurança em Wi-Fi',
+                    descricao: 'Identifique redes Wi-Fi seguras e aprenda sobre os riscos de redes públicas.',
+                    icone: 'Wifi',
+                    cor: 'from-green-500 to-emerald-600',
+                    dificuldade: 'Avançado'
+                },
+                {
+                    id: 'malware',
+                    nome: 'Detecção de Malware',
+                    descricao: 'Reconheça e evite diferentes tipos de malware e vírus.',
+                    icone: 'Bug',
+                    cor: 'from-purple-500 to-pink-600',
+                    dificuldade: 'Avançado'
+                }
+            ];
+
+            const iniciarSimulacao = (simulacao) => {
+                alert(`Iniciando simulação: ${simulacao.nome}! Prepare-se para o desafio.`);
+            };
+
+            return (
+                <div className="pt-24 pb-16 px-4 animate-slide-in">
+                    <div className="container mx-auto">
+                        <div className="text-center mb-12">
+                            <h2 className="text-3xl font-bold text-white mb-4 text-cyber-glow">
+                                Simulações Interativas
+                            </h2>
+                            <p className="text-gray-300 text-lg">
+                                Pratique suas habilidades em cenários realistas e desafiadores
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {simulacoes.map((simulacao) => (
+                                <div
+                                    key={simulacao.id}
+                                    className="bg-black/40 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-400/60 rounded-xl p-6 transition-all duration-300 hover-scale hover-glow"
+                                >
+                                    <div className={`w-16 h-16 bg-gradient-to-r ${simulacao.cor} rounded-xl flex items-center justify-center mb-4 animate-pulse-glow`}>
+                                        <Icon name={simulacao.icone} className="w-8 h-8 text-white" />
+                                    </div>
+                                    
+                                    <h3 className="text-xl font-bold text-white mb-3">{simulacao.nome}</h3>
+                                    <p className="text-gray-300 text-sm mb-4">{simulacao.descricao}</p>
+                                    
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                            simulacao.dificuldade === 'Básico' ? 'bg-green-500/20 text-green-400' :
+                                            simulacao.dificuldade === 'Intermediário' ? 'bg-yellow-500/20 text-yellow-400' :
+                                            'bg-red-500/20 text-red-400'
+                                        }`}>
+                                            {simulacao.dificuldade}
+                                        </span>
+                                        <Icon name="Clock" className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => iniciarSimulacao(simulacao)}
+                                        className={`w-full bg-gradient-to-r ${simulacao.cor} hover:opacity-90 text-white py-3 px-4 rounded-lg font-semibold transition-all transform hover:scale-105`}
+                                    >
+                                        <Icon name="Play" className="w-4 h-4 inline mr-2" />
+                                        Iniciar Simulação
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Seção de Estatísticas */}
+                        <div className="mt-16 bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8">
+                            <h3 className="text-2xl font-bold text-white mb-6 text-center">Suas Estatísticas</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                                <div>
+                                    <div className="text-3xl font-bold text-cyan-400 mb-2">12</div>
+                                    <div className="text-gray-300 text-sm">Simulações Completas</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-green-400 mb-2">87%</div>
+                                    <div className="text-gray-300 text-sm">Taxa de Sucesso</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-purple-400 mb-2">2h 30m</div>
+                                    <div className="text-gray-300 text-sm">Tempo Total</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-yellow-400 mb-2">5</div>
+                                    <div className="text-gray-300 text-sm">Recordes Pessoais</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente Dashboard Professor
+        const DashboardProfessor = ({ usuario }) => {
+            const [abaAtiva, setAbaAtiva] = useState('visao-geral');
+            const [alunoSelecionado, setAlunoSelecionado] = useState(null);
+
+            const abas = [
+                { id: 'visao-geral', nome: 'Visão Geral', icone: 'BarChart3' },
+                { id: 'alunos', nome: 'Alunos', icone: 'Users' },
+                { id: 'trilhas', nome: 'Trilhas', icone: 'BookOpen' },
+                { id: 'relatorios', nome: 'Relatórios', icone: 'FileText' }
+            ];
+
+            const abrirRelatorioIndividual = (nomeAluno) => {
+                setAlunoSelecionado(dadosApp.alunos[nomeAluno]);
+            };
+
+            const renderizarConteudo = () => {
+                switch (abaAtiva) {
+                    case 'visao-geral':
+                        return (
+                            <div className="space-y-8">
+                                {/* Estatísticas Rápidas */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                    <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6 text-center">
+                                        <Icon name="Users" className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">25</div>
+                                        <div className="text-gray-300 text-sm">Alunos Ativos</div>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md border border-green-500/30 rounded-lg p-6 text-center">
+                                        <Icon name="CheckCircle" className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">18</div>
+                                        <div className="text-gray-300 text-sm">Concluídos</div>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md border border-yellow-500/30 rounded-lg p-6 text-center">
+                                        <Icon name="Clock" className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">7</div>
+                                        <div className="text-gray-300 text-sm">Em Progresso</div>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md border border-purple-500/30 rounded-lg p-6 text-center">
+                                        <Icon name="Trophy" className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">92%</div>
+                                        <div className="text-gray-300 text-sm">Taxa Sucesso</div>
+                                    </div>
+                                </div>
+
+                                {/* Atividade Recente */}
+                                <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4">Atividade Recente</h3>
+                                    <div className="space-y-4">
+                                        {[
+                                            { aluno: 'Ana Silva', acao: 'completou "Fundamentos de Segurança"', tempo: '2h atrás', icone: 'CheckCircle', cor: 'text-green-400' },
+                                            { aluno: 'João Santos', acao: 'iniciou simulação de Phishing', tempo: '4h atrás', icone: 'Play', cor: 'text-blue-400' },
+                                            { aluno: 'Maria Costa', acao: 'conquistou medalha "Guardião Digital"', tempo: '1 dia atrás', icone: 'Trophy', cor: 'text-yellow-400' }
+                                        ].map((atividade, index) => (
+                                            <div key={index} className="flex items-center justify-between py-2 border-b border-gray-600 last:border-b-0">
+                                                <div className="flex items-center">
+                                                    <Icon name={atividade.icone} className={`w-5 h-5 ${atividade.cor} mr-3`} />
+                                                    <span className="text-white">{atividade.aluno} {atividade.acao}</span>
+                                                </div>
+                                                <span className="text-gray-400 text-sm">{atividade.tempo}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'alunos':
+                        return (
+                            <div className="space-y-6">
+                                <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4">Lista de Alunos</h3>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-white">
+                                            <thead>
+                                                <tr className="border-b border-gray-600">
+                                                    <th className="text-left py-2">Nome</th>
+                                                    <th className="text-left py-2 hidden md:table-cell">Progresso</th>
+                                                    <th className="text-left py-2">Status</th>
+                                                    <th className="text-left py-2 hidden md:table-cell">Último Acesso</th>
+                                                    <th className="text-left py-2">Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {Object.entries(dadosApp.alunos).map(([nome, dados]) => (
+                                                    <tr key={nome} className="border-b border-gray-700">
+                                                        <td className="py-3">{nome}</td>
+                                                        <td className="py-3 hidden md:table-cell">
+                                                            <div className="w-full bg-gray-600 rounded-full h-2">
+                                                                <div 
+                                                                    className="bg-green-400 h-2 rounded-full transition-all" 
+                                                                    style={{ width: `${dados.progresso}%` }}
+                                                                ></div>
+                                                            </div>
+                                                            <span className="text-xs text-gray-400">{dados.progresso}%</span>
+                                                        </td>
+                                                        <td className="py-3">
+                                                            <span className={`px-2 py-1 rounded-full text-xs ${
+                                                                dados.progresso > 80 ? 'bg-green-500/20 text-green-400' :
+                                                                dados.progresso > 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                'bg-blue-500/20 text-blue-400'
+                                                            }`}>
+                                                                {dados.progresso > 80 ? 'Avançado' : dados.progresso > 50 ? 'Progresso' : 'Iniciante'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3 hidden md:table-cell text-gray-400">{dados.ultimoAcesso}</td>
+                                                        <td className="py-3">
+                                                            <button
+                                                                onClick={() => abrirRelatorioIndividual(nome)}
+                                                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs transition-colors"
+                                                            >
+                                                                <Icon name="Eye" className="w-3 h-3 inline mr-1" />
+                                                                Ver Relatório
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'trilhas':
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {dadosApp.trilhas.map((trilha) => (
+                                    <div key={trilha.id} className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center">
+                                                <div className={`w-10 h-10 bg-gradient-to-r ${trilha.cor} rounded-lg flex items-center justify-center mr-3`}>
+                                                    <Icon name={trilha.icone} className="w-5 h-5 text-white" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-white font-bold">{trilha.nome}</h3>
+                                                    <p className="text-gray-400 text-sm">{trilha.modulos} módulos</p>
+                                                </div>
+                                            </div>
+                                            <span className="text-green-400 text-sm font-bold">
+                                                {Math.floor(Math.random() * 40) + 60}% concluído
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-gray-600 rounded-full h-2">
+                                            <div 
+                                                className={`bg-gradient-to-r ${trilha.cor} h-2 rounded-full`} 
+                                                style={{ width: `${Math.floor(Math.random() * 40) + 60}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+
+                    case 'relatorios':
+                        return (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-400/30 rounded-lg p-6">
+                                        <h4 className="text-white font-medium mb-2">Média Geral da Turma</h4>
+                                        <div className="text-3xl font-bold text-cyan-400">8.7</div>
+                                        <div className="text-gray-300 text-sm">de 10.0</div>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-green-500/10 to-emerald-600/10 border border-green-400/30 rounded-lg p-6">
+                                        <h4 className="text-white font-medium mb-2">Taxa de Conclusão</h4>
+                                        <div className="text-3xl font-bold text-green-400">92%</div>
+                                        <div className="text-gray-300 text-sm">dos módulos</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4">Exportar Relatórios</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white py-3 px-4 rounded-lg font-semibold transition-all">
+                                            📊 Progresso por Turma
+                                        </button>
+                                        <button className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 px-4 rounded-lg font-semibold transition-all">
+                                            👤 Desempenho Individual
+                                        </button>
+                                        <button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-4 rounded-lg font-semibold transition-all">
+                                            📋 Relatório Completo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+                <div className="pt-24 pb-16 px-4 animate-slide-in">
+                    <div className="container mx-auto">
+                        {/* Header do Dashboard */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                            <div>
+                                <h2 className="text-3xl font-bold text-white mb-2 text-cyber-glow">Painel do Professor</h2>
+                                <p className="text-gray-300">Bem-vindo, {usuario.nome}!</p>
+                            </div>
+                            <div className="mt-4 md:mt-0 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full px-4 py-2">
+                                <span className="text-white font-bold">Código: {usuario.codigoTurma}</span>
+                            </div>
+                        </div>
+
+                        {/* Navegação por Abas */}
+                        <div className="border-b border-gray-600 mb-8">
+                            <div className="flex space-x-8 overflow-x-auto">
+                                {abas.map((aba) => (
+                                    <button
+                                        key={aba.id}
+                                        onClick={() => setAbaAtiva(aba.id)}
+                                        className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors whitespace-nowrap ${
+                                            abaAtiva === aba.id
+                                                ? 'border-cyan-400 text-cyan-400'
+                                                : 'border-transparent text-gray-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <Icon name={aba.icone} className="w-5 h-5" />
+                                        <span className="font-medium">{aba.nome}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Conteúdo da Aba */}
+                        {renderizarConteudo()}
+                    </div>
+
+                    {/* Modal de Relatório Individual */}
+                    {alunoSelecionado && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                            <div className="bg-black/80 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-2xl font-bold text-white">Relatório Individual</h3>
+                                    <button
+                                        onClick={() => setAlunoSelecionado(null)}
+                                        className="text-gray-400 hover:text-white text-2xl"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+
+                                {/* Informações do Aluno */}
+                                <div className="mb-6">
+                                    <div className="flex items-center space-x-4 mb-4">
+                                        <div className="w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                                            <Icon name="User" className="w-8 h-8 text-white" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-bold text-white">
+                                                {Object.keys(dadosApp.alunos).find(nome => dadosApp.alunos[nome] === alunoSelecionado)}
+                                            </h4>
+                                            <p className="text-gray-400">Nível {alunoSelecionado.nivel} • {alunoSelecionado.pontos} pontos</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Estatísticas Gerais */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4 text-center">
+                                        <div className="text-2xl font-bold text-cyan-400">{alunoSelecionado.progresso}%</div>
+                                        <div className="text-gray-300 text-sm">Progresso Geral</div>
+                                    </div>
+                                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
+                                        <div className="text-2xl font-bold text-green-400">{alunoSelecionado.simulacoes}</div>
+                                        <div className="text-gray-300 text-sm">Simulações</div>
+                                    </div>
+                                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 text-center">
+                                        <div className="text-2xl font-bold text-purple-400">{alunoSelecionado.tempoJogado}</div>
+                                        <div className="text-gray-300 text-sm">Tempo Jogado</div>
+                                    </div>
+                                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-center">
+                                        <div className="text-2xl font-bold text-yellow-400">{alunoSelecionado.medalhas.length}</div>
+                                        <div className="text-gray-300 text-sm">Medalhas</div>
+                                    </div>
+                                </div>
+
+                                {/* Progresso por Trilha */}
+                                <div className="mb-6">
+                                    <h5 className="text-lg font-bold text-white mb-4">Progresso por Trilha</h5>
+                                    <div className="space-y-3">
+                                        {Object.entries(alunoSelecionado.trilhas).map(([trilhaId, progresso]) => {
+                                            const trilha = dadosApp.trilhas.find(t => t.id === trilhaId);
+                                            if (!trilha) return null;
+                                            
+                                            return (
+                                                <div key={trilhaId}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <div className="flex items-center">
+                                                            <Icon name={trilha.icone} className="w-4 h-4 text-cyan-400 mr-2" />
+                                                            <span className="text-white text-sm">{trilha.nome}</span>
+                                                        </div>
+                                                        <span className="text-cyan-400 font-bold text-sm">{progresso}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-600 rounded-full h-2">
+                                                        <div 
+                                                            className={`bg-gradient-to-r ${trilha.cor} h-2 rounded-full transition-all`} 
+                                                            style={{ width: `${progresso}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Medalhas Conquistadas */}
+                                <div className="mb-6">
+                                    <h5 className="text-lg font-bold text-white mb-4">Medalhas Conquistadas</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {alunoSelecionado.medalhas.map((medalha, index) => (
+                                            <div key={index} className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 flex items-center">
+                                                <Icon name="Trophy" className="w-6 h-6 text-yellow-400 mr-3" />
+                                                <span className="text-white text-sm">{medalha}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Último Acesso */}
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                                    <h5 className="text-white font-medium mb-2">Último Acesso</h5>
+                                    <p className="text-gray-300 text-sm">{alunoSelecionado.ultimoAcesso}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Componente Dashboard Aluno
+        const DashboardAluno = ({ usuario }) => {
+            const [abaAtiva, setAbaAtiva] = useState('progresso');
+
+            const abas = [
+                { id: 'progresso', nome: 'Progresso', icone: 'TrendingUp' },
+                { id: 'conquistas', nome: 'Conquistas', icone: 'Trophy' },
+                { id: 'inventario', nome: 'Inventário', icone: 'Package' },
+                { id: 'atividades', nome: 'Atividades', icone: 'Activity' }
+            ];
+
+            const renderizarConteudo = () => {
+                switch (abaAtiva) {
+                    case 'progresso':
+                        return (
+                            <div className="space-y-8">
+                                {/* Estatísticas do Progresso */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                    <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-4 text-center">
+                                        <Icon name="Target" className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">{usuario.progresso}%</div>
+                                        <div className="text-gray-300 text-sm">Progresso Geral</div>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md border border-green-500/30 rounded-lg p-4 text-center">
+                                        <Icon name="CheckCircle" className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">
+                                            {Object.values(usuario.trilhas || {}).filter(p => p === 100).length}
+                                        </div>
+                                        <div className="text-gray-300 text-sm">Trilhas Completas</div>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md border border-yellow-500/30 rounded-lg p-4 text-center">
+                                        <Icon name="Zap" className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">{usuario.pontos}</div>
+                                        <div className="text-gray-300 text-sm">XP Total</div>
+                                    </div>
+                                    <div className="bg-black/40 backdrop-blur-md border border-purple-500/30 rounded-lg p-4 text-center">
+                                        <Icon name="Flame" className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                                        <div className="text-2xl font-bold text-white">7</div>
+                                        <div className="text-gray-300 text-sm">Dias Consecutivos</div>
+                                    </div>
+                                </div>
+
+                                {/* Progresso por Trilha */}
+                                <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4">Progresso por Trilha</h3>
+                                    <div className="space-y-4">
+                                        {dadosApp.trilhas.map((trilha) => {
+                                            const progresso = usuario.trilhas?.[trilha.id] || 0;
+                                            return (
+                                                <div key={trilha.id}>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <div className="flex items-center">
+                                                            <Icon name={trilha.icone} className="w-5 h-5 text-cyan-400 mr-2" />
+                                                            <span className="text-white">{trilha.nome}</span>
+                                                        </div>
+                                                        <span className="text-cyan-400 font-bold">{progresso}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-600 rounded-full h-2">
+                                                        <div 
+                                                            className={`bg-gradient-to-r ${trilha.cor} h-2 rounded-full transition-all`} 
+                                                            style={{ width: `${progresso}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+
+                    case 'conquistas':
+                        const conquistas = [
+                            { nome: 'Primeiro Passo', descricao: 'Complete seu primeiro módulo', icone: 'Trophy', desbloqueado: true },
+                            { nome: 'Guardião Digital', descricao: 'Complete a trilha de Fundamentos', icone: 'Shield', desbloqueado: true },
+                            { nome: 'Especialista', descricao: 'Complete 3 trilhas diferentes', icone: 'Zap', desbloqueado: false },
+                            { nome: 'Mestre da Segurança', descricao: 'Complete todas as trilhas', icone: 'Crown', desbloqueado: false }
+                        ];
+
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {conquistas.map((conquista, index) => (
+                                    <div
+                                        key={index}
+                                        className={`rounded-xl p-6 text-center transition-all ${
+                                            conquista.desbloqueado
+                                                ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-400/30'
+                                                : 'bg-black/40 border border-gray-600/30 opacity-50'
+                                        }`}
+                                    >
+                                        <Icon 
+                                            name={conquista.icone} 
+                                            className={`w-12 h-12 mx-auto mb-4 ${
+                                                conquista.desbloqueado ? 'text-yellow-400' : 'text-gray-400'
+                                            }`} 
+                                        />
+                                        <h3 className="text-lg font-bold text-white mb-2">{conquista.nome}</h3>
+                                        <p className="text-gray-300 text-sm mb-4">{conquista.descricao}</p>
+                                        <span className={`px-3 py-1 rounded-full text-xs ${
+                                            conquista.desbloqueado
+                                                ? 'bg-yellow-500/20 text-yellow-400'
+                                                : 'bg-gray-500/20 text-gray-400'
+                                        }`}>
+                                            {conquista.desbloqueado ? 'Conquistado' : 'Bloqueado'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+
+                    case 'inventario':
+                        const ferramentas = [
+                            { nome: 'Antivírus', icone: 'Shield', coletado: true },
+                            { nome: 'Gerenciador de Senhas', icone: 'Key', coletado: true },
+                            { nome: 'VPN', icone: 'Wifi', coletado: false },
+                            { nome: 'Filtro Anti-Spam', icone: 'Mail', coletado: false }
+                        ];
+
+                        return (
+                            <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                <h3 className="text-xl font-bold text-white mb-4">Ferramentas de Proteção</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {ferramentas.map((ferramenta, index) => (
+                                        <div
+                                            key={index}
+                                            className={`rounded-lg p-4 text-center transition-all ${
+                                                ferramenta.coletado
+                                                    ? 'bg-green-500/10 border border-green-500/30'
+                                                    : 'bg-gray-500/10 border border-gray-500/30 opacity-50'
+                                            }`}
+                                        >
+                                            <Icon 
+                                                name={ferramenta.icone} 
+                                                className={`w-8 h-8 mx-auto mb-2 ${
+                                                    ferramenta.coletado ? 'text-green-400' : 'text-gray-400'
+                                                }`} 
+                                            />
+                                            <div className="text-white font-medium text-sm">{ferramenta.nome}</div>
+                                            <div className={`text-xs mt-1 ${
+                                                ferramenta.coletado ? 'text-green-400' : 'text-gray-400'
+                                            }`}>
+                                                {ferramenta.coletado ? 'Ativo' : 'Bloqueado'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    case 'atividades':
+                        const atividades = [
+                            { acao: 'Módulo "Senhas Fortes" concluído', xp: '+150 XP ganhos', tempo: 'Hoje', icone: 'CheckCircle', cor: 'text-green-400' },
+                            { acao: 'Simulação de Phishing iniciada', xp: 'Pontuação: 85/100', tempo: 'Ontem', icone: 'Target', cor: 'text-blue-400' },
+                            { acao: 'Conquista "Guardião Digital" desbloqueada', xp: 'Primeira trilha completa!', tempo: '2 dias atrás', icone: 'Trophy', cor: 'text-yellow-400' }
+                        ];
+
+                        return (
+                            <div className="bg-black/40 backdrop-blur-md border border-cyan-500/30 rounded-lg p-6">
+                                <h3 className="text-xl font-bold text-white mb-4">Atividades Recentes</h3>
+                                <div className="space-y-4">
+                                    {atividades.map((atividade, index) => (
+                                        <div key={index} className="flex items-center justify-between py-3 border-b border-gray-600 last:border-b-0">
+                                            <div className="flex items-center">
+                                                <Icon name={atividade.icone} className={`w-5 h-5 ${atividade.cor} mr-3`} />
+                                                <div>
+                                                    <div className="text-white">{atividade.acao}</div>
+                                                    <div className="text-gray-400 text-sm">{atividade.xp}</div>
+                                                </div>
+                                            </div>
+                                            <span className="text-gray-400 text-sm">{atividade.tempo}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+
+                    default:
+                        return null;
+                }
+            };
+
+            return (
+                <div className="pt-24 pb-16 px-4 animate-slide-in">
+                    <div className="container mx-auto">
+                        {/* Header do Dashboard */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                            <div>
+                                <h2 className="text-3xl font-bold text-white mb-2 text-cyber-glow">Painel do Aluno</h2>
+                                <p className="text-gray-300">Bem-vindo, {usuario.nome}!</p>
+                            </div>
+                            <div className="mt-4 md:mt-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full px-4 py-2">
+                                <span className="text-white font-bold">Nível {usuario.nivel}</span>
+                            </div>
+                        </div>
+
+                        {/* Navegação por Abas */}
+                        <div className="border-b border-gray-600 mb-8">
+                            <div className="flex space-x-8 overflow-x-auto">
+                                {abas.map((aba) => (
+                                    <button
+                                        key={aba.id}
+                                        onClick={() => setAbaAtiva(aba.id)}
+                                        className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors whitespace-nowrap ${
+                                            abaAtiva === aba.id
+                                                ? 'border-cyan-400 text-cyan-400'
+                                                : 'border-transparent text-gray-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <Icon name={aba.icone} className="w-5 h-5" />
+                                        <span className="font-medium">{aba.nome}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Conteúdo da Aba */}
+                        {renderizarConteudo()}
+                    </div>
+                </div>
+            );
+        };
+
+        // Componente Principal da Aplicação
+        const App = () => {
+            const [telaAtual, setTelaAtual] = useState('inicio');
+            const [usuarioLogado, setUsuarioLogado] = useState(null);
+
+            const navegarPara = (tela) => {
+                setTelaAtual(tela);
+            };
+
+            const fazerLogin = (usuario) => {
+                setUsuarioLogado(usuario);
+                if (usuario.tipo === 'professor') {
+                    setTelaAtual('dashboard-professor');
+                } else {
+                    setTelaAtual('dashboard-aluno');
+                }
+            };
+
+            const logout = () => {
+                setUsuarioLogado(null);
+                setTelaAtual('inicio');
+            };
+
+            const renderizarTela = () => {
+                switch (telaAtual) {
+                    case 'inicio':
+                        return <PaginaInicial onNavigate={navegarPara} />;
+                    case 'login':
+                        return <Login onLogin={fazerLogin} onNavigate={navegarPara} />;
+                    case 'mapa':
+                        return <MapaTrilhas onNavigate={navegarPara} usuarioLogado={usuarioLogado} />;
+                    case 'simulacoes':
+                        return <Simulacoes />;
+                    case 'dashboard-professor':
+                        return <DashboardProfessor usuario={usuarioLogado} />;
+                    case 'dashboard-aluno':
+                        return <DashboardAluno usuario={usuarioLogado} />;
+                    default:
+                        return <PaginaInicial onNavigate={navegarPara} />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-cyber-gradient">
+                    <Header 
+                        usuarioLogado={usuarioLogado} 
+                        onLogout={logout} 
+                        onNavigate={navegarPara} 
+                    />
+                    {renderizarTela()}
+                    
+                    {/* Rodapé */}
+                    <footer className="bg-black/40 py-8 px-4 border-t border-cyan-500/30">
+                        <div className="container mx-auto text-center">
+                            <div className="flex items-center justify-center space-x-2 mb-4">
+                                <Icon name="Shield" className="w-6 h-6 text-cyan-400" />
+                                <span className="text-xl font-bold text-white text-cyber-glow">CyberEdu</span>
+                            </div>
+                            <p className="text-gray-400">
+                                © 2024 CyberEdu. Protegendo o futuro digital através da educação gamificada.
+                            </p>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        // Renderizar a aplicação
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
